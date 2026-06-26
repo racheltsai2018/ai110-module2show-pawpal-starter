@@ -3,37 +3,52 @@ classDiagram
 
     class Owner {
         +str name
-        +Pet pet
-        +int available_minutes
-        +dict preferences
+        +list~Pet~ pets
+        +dict available_time
+        +add_pet(pet) None
+        +remove_pet(pet) None
+        +all_tasks() list~Task~
+        +tasks_for(pet) list~Task~
+        +tasks_due_today(today) list~Task~
+        +__str__() str
     }
 
     class Pet {
         +str name
         +str species
-        +int age
+        +list~Task~ tasks
+        +add_task(task) None
+        +remove_task(task) None
+        +list_tasks() list~Task~
+        +__str__() str
     }
 
     class Task {
         +str name
         +int duration
         +str priority
-        +str preferred_time
-        +str recurrence
-        +is_due_today() bool
+        +date due_date
+        +list~Pet~ pets
+        +int frequency
+        +time preferred_time
+        +bool completed
+        +is_due_today(today) bool
+        +priority_rank() int
+        +mark_complete() None
+        +total_daily_minutes() int
         +__str__() str
     }
 
     class Scheduler {
-        +list~Task~ tasks
         +Owner owner
-        +sort_tasks() list~Task~
-        +filter_tasks() list~Task~
-        +assign_times() list
-        +generate_plan() list
+        +list~Task~ tasks
+        +sort_tasks(today) list~Task~
+        +filter_tasks(today) list~Task~
+        +assign_times(today) list
+        +detect_conflicts(today) list
+        +generate_plan(today) list
     }
 
-    Owner "1" --> "1" Pet : has
-    Owner "1" --> "*" Task : owns
+    Owner "1" --> "*" Pet : has
+    Pet "*" --> "*" Task : has
     Scheduler --> Owner : reads constraints
-    Scheduler --> Task : schedules
