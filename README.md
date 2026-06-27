@@ -57,18 +57,30 @@ Today's Schedule for Sam (Friday, June 26, 2026)
 
 ## 🧪 Testing PawPal+
 
+The tests cover the core behaviors including task completion, generating recurring tasks, sorting the tasks by priority and time, and detecting task conflicts.
+
+Confidence Level: 5 stars. The system is reliable because all 13 tests passed.
+
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
-pytest --cov
+python -m pytest --cov
 ```
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+========================================================================================== test session starts ==========================================================================================
+platform win32 -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\User\Desktop\2026\Codepath\AI110\week_4\ai110-module2show-pawpal-starter
+plugins: anyio-4.14.0
+collected 13 items                                                                                                                                                                                       
+
+test\test_pawpal.py .............                                                                                                                                                                  [100%]
+
+========================================================================================== 13 passed in 0.13s ===========================================================================================
 ```
 
 ## 📐 Smarter Scheduling
