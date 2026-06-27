@@ -73,14 +73,13 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting |Scheduler.sort_tasks(), Scheduler.sort_by_time(), Task.priority_rank()| sort_tasks() organizes today's tasks depending on priority with Tash.priority_rank(). Scheduler.sort_by_time() sort the task depending on the preferred time.|
+| Filtering | Owner.find_tasks(), Owner.tasks_due_today(), Scheduler.filter_tasks()| find_tasks() can filter task depending on completion status or pet involved in this task. tasks_due_today() fillers task that will be due on inputed day. filter_tasks filters tasks that only fit the owner's available window. |
+| Conflict handling | Scheduler.detect_conflicts(), Scheduler.conflict_warnings() | detect_conflicts() return the taks that have conflicts. conflict_warnings() will send warning regarding conflicts. |
+| Recurring tasks |Task.next_occurence(), Task.mark_complete()| next_occurence() create the new task once the last one finishes depending on the occurence. mark_complete() marks the task as done |
 
 ## 📸 Demo Walkthrough
 

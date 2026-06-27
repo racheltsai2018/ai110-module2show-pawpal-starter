@@ -1,4 +1,7 @@
+from datetime import date
+
 import streamlit as st
+from pawpal_system import Pet, Task, Owner, Scheduler
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -59,12 +62,26 @@ with col3:
 
 if st.button("Add task"):
     st.session_state.tasks.append(
-        {"title": task_title, "duration_minutes": int(duration), "priority": priority}
+        Task(
+            name=task_title,
+            duration=int(duration),
+            priority=priority,
+            due_date=date.today(),
+        )
     )
 
 if st.session_state.tasks:
     st.write("Current tasks:")
-    st.table(st.session_state.tasks)
+    st.table(
+        [
+            {
+                "title": t.name,
+                "duration_minutes": t.duration,
+                "priority": t.priority,
+            }
+            for t in st.session_state.tasks
+        ]
+    )
 else:
     st.info("No tasks yet. Add one above.")
 
@@ -74,15 +91,39 @@ st.subheader("Build Schedule")
 st.caption("This button should call your scheduling logic once you implement it.")
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
-    )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
-    )
+    if not st.session_state.tasks:
+        st.info("Add at least one task before generating a schedule.")
+    else:
+        # Build the backend objects from the UI inputs.
+        pet = Pet(name=pet_name, species=species)
+        for task in st.session_state.tasks:
+            pet.add_task(task)
+
+        owner = Owner(name=owner_name)
+        owner.add_pet(pet)
+
+        scheduler = Scheduler(owner)
+        plan = scheduler.generate_plan(date.today())
+
+        if not plan:
+            st.warning("No tasks fit the available time window today.")
+        else:
+            st.success(f"Planned {len(plan)} task occurrence(s) for {pet.name}.")
+            st.table(
+                [
+                    {
+                        "time": slot.strftime("%H:%M"),
+                        "task": task.name,
+                        "duration_minutes": task.duration,
+                        "priority": task.priority,
+                    }
+                    for slot, task in plan
+                ]
+            )
+
+        conflicts = scheduler.detect_conflicts(date.today())
+        if conflicts:
+            st.warning("Scheduling conflicts detected:")
+            for slot, tasks in conflicts:
+                names = ", ".join(t.name for t in tasks)
+                st.write(f"- {slot.strftime('%H:%M')}: {names}")
