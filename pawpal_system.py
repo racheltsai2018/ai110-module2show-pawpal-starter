@@ -3,6 +3,7 @@
 Generated from diagrams/uml.mmd. Method bodies are stubs (no logic yet).
 """
 
+import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
@@ -97,6 +98,85 @@ class Owner:
     def tasks_due_today(self, today: date) -> list["Task"]:
         """All still-pending tasks due on `today`, across every pet."""
         return [task for task in self.all_tasks() if task.is_due_today(today)]
+
+    def to_dict(self) -> dict:
+        """Serialize the owner, its pets, and all tasks into plain dicts.
+
+        Pets are listed by index; each task records the indexes of the pets it
+        belongs to, so a shared task (the same Task on several pets) is stored
+        once and re-linked to every pet on load.
+        """
+        pet_index = {id(pet): i for i, pet in enumerate(self.pets)}
+        tasks = []
+        for task in self.all_tasks():
+            tasks.append(
+                {
+                    "name": task.name,
+                    "duration": task.duration,
+                    "priority": task.priority,
+                    "due_date": task.due_date.isoformat(),
+                    "pet_indexes": [
+                        pet_index[id(p)] for p in task.pets if id(p) in pet_index
+                    ],
+                    "frequency": task.frequency,
+                    "preferred_time": (
+                        task.preferred_time.isoformat()
+                        if task.preferred_time is not None
+                        else None
+                    ),
+                    "completed": task.completed,
+                    "recurrence": task.recurrence,
+                }
+            )
+        return {
+            "name": self.name,
+            "available_time": self.available_time,
+            "pets": [{"name": p.name, "species": p.species} for p in self.pets],
+            "tasks": tasks,
+        }
+
+    def save_to_json(self, path: str = "data.json") -> None:
+        """Write this owner (pets + tasks) to a JSON file for persistence."""
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Owner":
+        """Rebuild an Owner (with pets and tasks) from a serialized dict."""
+        owner = cls(
+            name=data.get("name", ""),
+            available_time=data.get("available_time", {}) or {},
+        )
+        pets = [Pet(name=p["name"], species=p["species"]) for p in data.get("pets", [])]
+        for pet in pets:
+            owner.add_pet(pet)
+        for t in data.get("tasks", []):
+            preferred = t.get("preferred_time")
+            task = Task(
+                name=t["name"],
+                duration=t["duration"],
+                priority=t["priority"],
+                due_date=date.fromisoformat(t["due_date"]),
+                frequency=t.get("frequency", 1),
+                preferred_time=time.fromisoformat(preferred) if preferred else None,
+                completed=t.get("completed", False),
+                recurrence=t.get("recurrence"),
+            )
+            # Re-link the (possibly shared) task to each of its pets by index.
+            for idx in t.get("pet_indexes", []):
+                if 0 <= idx < len(pets):
+                    pets[idx].add_task(task)
+        return owner
+
+    @classmethod
+    def load_from_json(cls, path: str = "data.json") -> "Owner | None":
+        """Load an Owner from a JSON file, or None if the file doesn't exist."""
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return None
+        return cls.from_dict(data)
 
     def __str__(self) -> str:
         """Readable summary: name, pet count, and total task count."""
@@ -208,10 +288,23 @@ class Scheduler:
         return max(0, int(delta.total_seconds() // 60))
 
     def sort_tasks(self, today: date | None = None) -> list[Task]:
-        """Pending tasks for `today`, ordered by priority then shortest first."""
+        """Pending tasks for `today`, ordered by priority first, then by time.
+
+        High-priority tasks come first; within the same priority, tasks are
+        ordered by their preferred time of day (flexible tasks without a
+        preferred_time sort last), and shortest-first breaks any remaining ties.
+        """
         today = today or date.today()
         due = self.owner.tasks_due_today(today)
-        return sorted(due, key=lambda t: (t.priority_rank(), t.duration))
+        end_of_day = time(23, 59, 59)
+        return sorted(
+            due,
+            key=lambda t: (
+                t.priority_rank(),
+                t.preferred_time or end_of_day,
+                t.duration,
+            ),
+        )
 
     def sort_by_time(self, today: date | None = None) -> list[Task]:
         """Pending tasks for `today`, ordered by their preferred time of day.
@@ -337,6 +430,68 @@ class Scheduler:
                 f"WARNING: {start:%H:%M} - {scope}: {names} overlap."
             )
         return warnings
+
+    def free_slots(
+        self, today: date | None = None, min_minutes: int = 1
+    ) -> list[tuple[time, time]]:
+        """Return the open (start, end) gaps in the care window after planning.
+
+        Builds the day's plan, merges every scheduled occurrence into busy
+        intervals, then sweeps the care window start-to-end and emits the gaps
+        between them. Only gaps at least `min_minutes` long are returned, so the
+        result is the set of windows where new work could actually fit.
+        """
+        today = today or date.today()
+        win_start, win_end = self._window()
+        cursor = datetime.combine(today, win_start)
+        day_end = datetime.combine(today, win_end)
+
+        # Busy intervals from the generated plan, merged so overlaps don't
+        # produce phantom zero-length gaps. Sort by start, then sweep.
+        busy = sorted(
+            (
+                datetime.combine(today, slot),
+                datetime.combine(today, slot) + timedelta(minutes=task.duration),
+            )
+            for slot, task in self.generate_plan(today)
+        )
+
+        slots: list[tuple[time, time]] = []
+
+        def emit(gap_start: datetime, gap_end: datetime) -> None:
+            if (gap_end - gap_start) >= timedelta(minutes=min_minutes):
+                slots.append((gap_start.time(), gap_end.time()))
+
+        for start, end in busy:
+            if start > cursor:
+                emit(cursor, min(start, day_end))
+            cursor = max(cursor, end)
+            if cursor >= day_end:
+                break
+        if cursor < day_end:
+            emit(cursor, day_end)
+        return slots
+
+    def find_next_available_slot(
+        self, duration: int, today: date | None = None, after: time | None = None
+    ) -> time | None:
+        """Earliest start time that fits a `duration`-minute task, or None.
+
+        Scans the free gaps (see `free_slots`) for the first one long enough to
+        hold the task. Pass `after` to only consider slots at or past a given
+        time of day (e.g. "when's my next free moment from now?").
+        """
+        today = today or date.today()
+        for gap_start, gap_end in self.free_slots(today, min_minutes=duration):
+            start = gap_start
+            if after is not None and start < after:
+                # Try sliding the start forward into this gap.
+                start = after
+            slot_start = datetime.combine(today, start)
+            slot_end = datetime.combine(today, gap_end)
+            if (slot_end - slot_start) >= timedelta(minutes=duration):
+                return start
+        return None
 
     def generate_plan(self, today: date | None = None) -> list[tuple[time, Task]]:
         """Produce the final ordered daily plan (sort -> filter -> assign)."""

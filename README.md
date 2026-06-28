@@ -55,6 +55,14 @@ Today's Schedule for Sam (Friday, June 26, 2026)
 #   ...
 ```
 
+##Persistence workflow
+The PawPal+ remembers pets and tasks by saving them to a data.json file in the project folder. This way the data can still be kept and loaded the next time the user open the application. 
+
+It works by first calling Owner.load_from_json() to load previously saved data. Everytime pet or task information changes the Owner.save_to_json() is called to update the information in the data.json file.
+
+The files that were modified includes the pawpal_system.py to add to_dict(), save_to_json(), from_dict(), and load_from_json() to the Owner class. The app.py file were modified to load the information from data.json. main.py is also modified to ensure that it is working properly. 
+
+
 ## 🧪 Testing PawPal+
 
 The tests cover the core behaviors including task completion, generating recurring tasks, sorting the tasks by priority and time, and detecting task conflicts.
@@ -105,6 +113,50 @@ Describe your app in numbered steps so a reader can follow along without watchin
 6. Under Build Schedule, select a date for generating the schedule. Press the Generate Schedule button when done. The schedule is generated based on the current tasks.
 7. The tasks will be listed by priority, and preferred time. The daily plan for the date entered, and conflicts will be printed. 
 
+###Priority-Based Scheduling
+
+Tasks sorted by time for Sam (Sunday, June 28, 2026):
+     08:00  Morning walk [high]
+     08:30  Play with Snow [low]
+     09:00  Feeding [high]
+     18:00  Cat meds [high]
+     18:00  Dog meds [medium]
+
+Tasks sorted by priority, then time for Sam:
+  [  high]    08:00  Morning walk (30 min)
+  [  high]    09:00  Feeding (10 min)
+  [  high]    18:00  Cat meds (5 min)
+  [medium]    18:00  Dog meds (5 min)
+  [   low]    08:30  Play with Snow (15 min)
+
+Pending tasks (not yet done):
+  - Dog meds
+  - Feeding
+  - Morning walk
+  - Play with Snow
+  - Cat meds
+
+Completed tasks:
+  - Brush Snow
+
+Tasks involving Snow:
+  - Feeding
+  - Play with Snow
+  - Brush Snow
+  - Cat meds
+
+Today's Schedule for Sam:
+  08:00 Morning walk: 30 min, priority:high, Pets: Biscuit
+  08:30 Play with Snow: 15 min, priority:low, Pets: Snow
+  09:00 Feeding: 10 min, priority:high, Pets: Biscuit, Snow
+  18:00 Cat meds: 5 min, priority:high, Pets: Snow
+  18:00 Dog meds: 5 min, priority:medium, Pets: Biscuit
+
+Next free 20-min slot today: 09:10
+
+[!] Scheduling conflicts:
+  WARNING: 18:00 - 2 pets need attention at once (Biscuit, Snow): Cat meds, Dog meds overlap.
+
 ### Sample CLI output
 
 Tasks sorted by time for Sam (Saturday, June 27, 2026):
@@ -154,3 +206,16 @@ Today's Schedule for Sam:
 ### Build schedule
 ![Build schedule section](screenshots/PawPal_4.png)
 ![daily plan & conflicts](screenshots/PawPal_5.png)
+
+## Professional UI and Output Formatting
+To make the output easier to read, color-coded status indicators, emoji for different task types, and structured tables are added. 
+
+The libraries tabulate and colorama are used.
+
+| Feature | Functions | Notes|
+|---------|-----------|------|
+| Color-coded priority| color_priority() for CLI and priority_badge() for Streamlit UI| High priority = Red, Medium = Yellow, Low = green. The CLI uses colorama colors and Streamlit UI uses colored emoji dots.|
+|Status emoji| status_icon() for CLI and status_badge() for Streamlit UI| Completed tasks show a green check with done, and pending task show a hourglass with pending.|
+|Task type emoji| task_emoji() for both CLI and Streamlit UI and task_label() for streamlit UI| There are different emojis for walk, feed, medication, play, grooming, vet, and default.|
+|Structured tables| tabulate() for CLI, st.table() for Streamlit UI|  Sorted tasks, status table, and daily plan are printed in table formatting.|
+|Headers| header() for CLI| The method is used to create headers to separate the different sections.|

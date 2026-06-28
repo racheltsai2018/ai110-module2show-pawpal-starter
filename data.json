@@ -1,0 +1,150 @@
+{
+  "name": "Sam",
+  "available_time": {
+    "start": "08:00",
+    "end": "20:00"
+  },
+  "pets": [
+    {
+      "name": "Biscuit",
+      "species": "Golden Retriever"
+    },
+    {
+      "name": "Snow",
+      "species": "Cat"
+    }
+  ],
+  "tasks": [
+    {
+      "name": "Dog meds",
+      "duration": 5,
+      "priority": "medium",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        0
+      ],
+      "frequency": 1,
+      "preferred_time": "18:00:00",
+      "completed": true,
+      "recurrence": null
+    },
+    {
+      "name": "Feeding",
+      "duration": 10,
+      "priority": "high",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        0,
+        1
+      ],
+      "frequency": 1,
+      "preferred_time": "09:00:00",
+      "completed": true,
+      "recurrence": null
+    },
+    {
+      "name": "Morning walk",
+      "duration": 30,
+      "priority": "high",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        0
+      ],
+      "frequency": 1,
+      "preferred_time": "08:00:00",
+      "completed": true,
+      "recurrence": null
+    },
+    {
+      "name": "Morning walk",
+      "duration": 20,
+      "priority": "high",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        0
+      ],
+      "frequency": 1,
+      "preferred_time": null,
+      "completed": true,
+      "recurrence": null
+    },
+    {
+      "name": "Morning walk",
+      "duration": 20,
+      "priority": "low",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        0
+      ],
+      "frequency": 1,
+      "preferred_time": null,
+      "completed": true,
+      "recurrence": null
+    },
+    {
+      "name": "Morning walk",
+      "duration": 20,
+      "priority": "low",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        0
+      ],
+      "frequency": 1,
+      "preferred_time": null,
+      "completed": false,
+      "recurrence": null
+    },
+    {
+      "name": "Meds",
+      "duration": 20,
+      "priority": "high",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        0
+      ],
+      "frequency": 1,
+      "preferred_time": null,
+      "completed": false,
+      "recurrence": null
+    },
+    {
+      "name": "Play with Snow",
+      "duration": 15,
+      "priority": "low",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        1
+      ],
+      "frequency": 1,
+      "preferred_time": "08:30:00",
+      "completed": true,
+      "recurrence": null
+    },
+    {
+      "name": "Brush Snow",
+      "duration": 10,
+      "priority": "low",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        1
+      ],
+      "frequency": 1,
+      "preferred_time": "07:00:00",
+      "completed": true,
+      "recurrence": null
+    },
+    {
+      "name": "Cat meds",
+      "duration": 5,
+      "priority": "high",
+      "due_date": "2026-06-28",
+      "pet_indexes": [
+        1
+      ],
+      "frequency": 1,
+      "preferred_time": "18:00:00",
+      "completed": true,
+      "recurrence": null
+    }
+  ]
+}

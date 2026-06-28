@@ -166,6 +166,45 @@ def test_adjacent_tasks_do_not_conflict():
     assert sched.detect_conflicts(today) == []
 
 
+# --- Next available slot ----------------------------------------------------
+
+def test_free_slots_reports_gap_after_a_task():
+    """An 8:00 30-min walk leaves the window free again from 8:30 onward."""
+    today = date.today()
+    walk = Task("Walk", 30, "high", today, preferred_time=time(8, 0))
+    sched = _scheduler_with([walk], window={"start": "08:00", "end": "09:00"})
+
+    slots = sched.free_slots(today)
+
+    assert slots == [(time(8, 30), time(9, 0))]
+
+
+def test_find_next_available_slot_skips_busy_time():
+    """A 15-min task can't start at 8:00 (busy) but fits right after at 8:30."""
+    today = date.today()
+    walk = Task("Walk", 30, "high", today, preferred_time=time(8, 0))
+    sched = _scheduler_with([walk], window={"start": "08:00", "end": "09:00"})
+
+    assert sched.find_next_available_slot(15, today) == time(8, 30)
+
+
+def test_find_next_available_slot_returns_none_when_no_room():
+    """If no gap is long enough, the finder reports None instead of guessing."""
+    today = date.today()
+    walk = Task("Walk", 50, "high", today, preferred_time=time(8, 0))
+    sched = _scheduler_with([walk], window={"start": "08:00", "end": "09:00"})
+
+    assert sched.find_next_available_slot(30, today) is None
+
+
+def test_find_next_available_slot_respects_after():
+    """`after` pushes the slot past an earlier-but-free time of day."""
+    today = date.today()
+    sched = _scheduler_with([], window={"start": "08:00", "end": "12:00"})
+
+    assert sched.find_next_available_slot(30, today, after=time(10, 0)) == time(10, 0)
+
+
 def test_conflict_warnings_are_human_readable():
     """conflict_warnings() returns a warning string for an overlap."""
     today = date.today()

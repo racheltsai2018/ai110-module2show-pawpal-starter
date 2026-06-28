@@ -10,11 +10,14 @@
 
 **What task did you give the agent?**
 
-<!-- Describe the goal you asked the agent to accomplish -->
+*** Advanced Algorithmic Capability
+I asked the agent to add the capability to find "next available slot", which finds the earliest gap in the day to fit a new task.
 
 **What did the agent do?**
 
-<!-- List the steps the agent took (files edited, commands run, etc.) -->
+1. The agent implemented the methods free_slots() and find_next_available_slot() in the Scheduler class. 
+2. The agent then added the feature into the Streamlit UI, test_pawpal.py, and main.py to ensure that it is working as intended.
+
 
 **What did you have to verify or fix manually?**
 

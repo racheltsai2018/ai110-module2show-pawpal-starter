@@ -5,6 +5,44 @@ from pawpal_system import Pet, Task, Owner, Scheduler, DEFAULT_WINDOW
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
+
+# ---------------------------------------------------------------------------
+# Presentation helpers: task-type emojis + color-coded priority badges.
+# (Mirrors the CLI polish in main.py, adapted for Streamlit tables.)
+# ---------------------------------------------------------------------------
+def task_emoji(name: str) -> str:
+    """Pick an emoji that hints at the kind of task from its name."""
+    text = name.lower()
+    if "walk" in text:
+        return "🦮"
+    if "feed" in text or "food" in text:
+        return "🍽️"
+    if "med" in text or "pill" in text:
+        return "💊"
+    if "play" in text:
+        return "🎾"
+    if "brush" in text or "groom" in text:
+        return "🪮"
+    if "vet" in text:
+        return "🏥"
+    return "🐾"
+
+
+def priority_badge(priority: str) -> str:
+    """Color-coded priority: 🔴 high, 🟡 medium, 🟢 low."""
+    dot = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(priority.lower(), "⚪")
+    return f"{dot} {priority.upper()}"
+
+
+def status_badge(completed: bool) -> str:
+    """Green check for done, hourglass for pending."""
+    return "✅ done" if completed else "⏳ pending"
+
+
+def task_label(t) -> str:
+    """Task name prefixed with its type emoji."""
+    return f"{task_emoji(t.name)} {t.name}"
+
 st.title("🐾 PawPal+")
 
 st.markdown(
@@ -17,9 +55,14 @@ add one or more **pets**, attach **tasks**, then generate and explain a daily pl
 # ---------------------------------------------------------------------------
 # Session state: one Owner holds everything (pets, tasks, preferences).
 # ---------------------------------------------------------------------------
+DATA_FILE = "data.json"
+
 if "owner" not in st.session_state:
-    owner = Owner(name="Jordan")
-    owner.add_pet(Pet(name="Mochi", species="dog"))
+    # Restore a saved owner if one exists, otherwise start with a default.
+    owner = Owner.load_from_json(DATA_FILE)
+    if owner is None:
+        owner = Owner(name="Jordan")
+        owner.add_pet(Pet(name="Mochi", species="dog"))
     st.session_state.owner = owner
 
 owner: Owner = st.session_state.owner
@@ -53,6 +96,8 @@ owner.available_time = {
     "start": win_start.strftime("%H:%M"),
     "end": win_end.strftime("%H:%M"),
 }
+# Persist owner name + care-window edits as they're made.
+owner.save_to_json(DATA_FILE)
 st.caption(
     f"Available care time today: **{Scheduler(owner)._window_minutes(date.today())} min**."
 )
@@ -79,6 +124,7 @@ with pc3:
             st.warning(f"A pet named “{new_pet_name}” already exists.")
         else:
             owner.add_pet(Pet(name=new_pet_name.strip(), species=new_pet_species))
+            owner.save_to_json(DATA_FILE)
             st.success(f"Added {new_pet_name}.")
             st.rerun()
 
@@ -88,6 +134,7 @@ if owner.pets:
         cols[0].write(str(pet))
         if cols[1].button("Remove", key=f"rmpet_{id(pet)}"):
             owner.remove_pet(pet)
+            owner.save_to_json(DATA_FILE)
             st.rerun()
 else:
     st.info("No pets yet. Add one above.")
@@ -148,6 +195,7 @@ else:
             # Adding the SAME Task object to each pet makes it a shared task.
             for name in assigned_pets:
                 find_pet(name).add_task(task)
+            owner.save_to_json(DATA_FILE)
             st.success(f"Added “{task_title}” for {', '.join(assigned_pets)}.")
             st.rerun()
 
@@ -157,11 +205,17 @@ else:
         st.write("Current tasks:")
         for t in all_tasks:
             cols = st.columns([7, 2, 2])
-            cols[0].write(str(t))
+            times = f" ×{t.frequency}/day" if t.frequency > 1 else ""
+            who = ", ".join(p.name for p in t.pets)
+            cols[0].write(
+                f"{status_badge(t.completed)} {task_label(t)} "
+                f"({t.duration} min{times}) — {priority_badge(t.priority)} · {who}"
+            )
             cols[1].caption(t.due_date.strftime("%Y-%m-%d"))
             if not t.completed:
                 if cols[2].button("Mark done", key=f"done_{id(t)}"):
                     nxt = t.mark_complete()
+                    owner.save_to_json(DATA_FILE)
                     if nxt is not None:
                         st.toast(f"Recurring task rescheduled for {nxt.due_date}.")
                     st.rerun()
@@ -194,8 +248,9 @@ if st.button("Generate schedule"):
             [
                 {
                     "rank": i,
-                    "task": t.name,
-                    "priority": t.priority,
+                    "task": task_label(t),
+                    "priority": priority_badge(t.priority),
+                    "status": status_badge(t.completed),
                     "duration_minutes": t.duration,
                     "total_minutes": t.total_daily_minutes(),
                     "pets": ", ".join(p.name for p in t.pets),
@@ -209,11 +264,11 @@ if st.button("Generate schedule"):
         st.table(
             [
                 {
-                    "task": t.name,
+                    "task": task_label(t),
                     "preferred_time": t.preferred_time.strftime("%H:%M")
                     if t.preferred_time
                     else "flexible",
-                    "priority": t.priority,
+                    "priority": priority_badge(t.priority),
                 }
                 for t in scheduler.sort_by_time(day)
             ]
@@ -242,14 +297,38 @@ if st.button("Generate schedule"):
                 [
                     {
                         "time": slot.strftime("%H:%M"),
-                        "task": task.name,
+                        "task": task_label(task),
                         "duration_minutes": task.duration,
-                        "priority": task.priority,
+                        "priority": priority_badge(task.priority),
                         "pets": ", ".join(p.name for p in task.pets),
                     }
                     for slot, task in plan
                 ]
             )
+
+        # --- Next available slot ---
+        st.markdown("#### 🕳️ Open time")
+        free = scheduler.free_slots(day, min_minutes=1)
+        if free:
+            st.caption(
+                "Free gaps today: "
+                + ", ".join(f"{s:%H:%M}–{e:%H:%M}" for s, e in free)
+            )
+        else:
+            st.caption("No open gaps in the care window today.")
+        fc1, fc2 = st.columns([2, 3])
+        with fc1:
+            fit_minutes = st.number_input(
+                "Fit a new task of (min)", min_value=1, max_value=240, value=15
+            )
+        with fc2:
+            st.write("")
+            st.write("")
+            slot = scheduler.find_next_available_slot(int(fit_minutes), day)
+            if slot is not None:
+                st.success(f"Next available slot: **{slot:%H:%M}**")
+            else:
+                st.warning("No open slot long enough today.")
 
         # --- Conflicts ---
         st.markdown("#### ⚠️ Conflicts")
