@@ -97,10 +97,60 @@ test\test_pawpal.py .............                                               
 
 Describe your app in numbered steps so a reader can follow along without watching a video:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. Open the project folder path in terminal and run "python -m streamlit run app.py"
+2. Enter the owner information and the time window available to do the tasks.
+3. In the Pets block, add pet name and species.
+4. Under Tasks users can enter information for the task and select the pets that will be involved in current task. 
+5. When a reccuring task is Marked done, a new task with new due date will be created. 
+6. Under Build Schedule, select a date for generating the schedule. Press the Generate Schedule button when done. The schedule is generated based on the current tasks.
+7. The tasks will be listed by priority, and preferred time. The daily plan for the date entered, and conflicts will be printed. 
+
+### Sample CLI output
+
+Tasks sorted by time for Sam (Saturday, June 27, 2026):
+     08:00  Morning walk [high]
+     09:00  Feeding [high]
+     18:00  Cat meds [high]
+     18:00  Dog meds [medium]
+  flexible  Play with Snow [low]
+
+Pending tasks (not yet done):
+  - Dog meds
+  - Feeding
+  - Morning walk
+  - Play with Snow
+  - Cat meds
+
+Completed tasks:
+  - Brush Snow
+
+Tasks involving Snow:
+  - Feeding
+  - Play with Snow
+  - Brush Snow
+  - Cat meds
+
+Today's Schedule for Sam:
+  08:00 Morning walk: 30 min, priority:high, Pets: Biscuit
+  08:00 Play with Snow: 15 min, priority:low, Pets: Snow
+  09:00 Feeding: 10 min, priority:high, Pets: Biscuit, Snow
+  18:00 Cat meds: 5 min, priority:high, Pets: Snow
+  18:00 Dog meds: 5 min, priority:medium, Pets: Biscuit
+
+[!] Scheduling conflicts:
+  WARNING: 08:00 - 2 pets need attention at once (Biscuit, Snow): Play with Snow, Morning walk overlap.
+  WARNING: 18:00 - 2 pets need attention at once (Biscuit, Snow): Cat meds, Dog meds overlap.
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+### Owner & preferences
+![Owner and preferences section](screenshots/PawPal_1.png)
+
+### Pets
+![Pets information section](screenshots/PawPal_2.png)
+
+### Tasks
+![Tasks information section](screenshots/PawPal_3.png)
+
+### Build schedule
+![Build schedule section](screenshots/PawPal_4.png)
+![daily plan & conflicts](screenshots/PawPal_5.png)

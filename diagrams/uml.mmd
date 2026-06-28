@@ -9,6 +9,7 @@ classDiagram
         +remove_pet(pet) None
         +all_tasks() list~Task~
         +tasks_for(pet) list~Task~
+        +find_tasks(completed, pet_name) list~Task~
         +tasks_due_today(today) list~Task~
         +__str__() str
     }
@@ -32,9 +33,11 @@ classDiagram
         +int frequency
         +time preferred_time
         +bool completed
+        +str recurrence
         +is_due_today(today) bool
         +priority_rank() int
-        +mark_complete() None
+        +next_occurrence() Task
+        +mark_complete() Task
         +total_daily_minutes() int
         +__str__() str
     }
@@ -43,12 +46,15 @@ classDiagram
         +Owner owner
         +list~Task~ tasks
         +sort_tasks(today) list~Task~
+        +sort_by_time(today) list~Task~
         +filter_tasks(today) list~Task~
         +assign_times(today) list
         +detect_conflicts(today) list
+        +conflict_warnings(today) list~str~
         +generate_plan(today) list
     }
 
     Owner "1" --> "*" Pet : has
     Pet "*" --> "*" Task : has
     Scheduler --> Owner : reads constraints
+    Task ..> Task : creates next (recurrence)
